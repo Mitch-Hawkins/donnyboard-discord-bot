@@ -45,15 +45,30 @@ function handleGuessTheGameMessage(message) {
 
   dailySubmissions[userId] = todayAEST;
 
-  //   const user = message.author.username;
-  console.log(`${displayName} scored ${points} point(s)`);
-  if (points !== 1) {
+  const guesses = 7 - points;
+  const holeInOne = points === 6 && guesses === 1;
+
+  console.log(`${displayName} scored ${points} point(s) in ${guesses} guesses`);
+  if (points === 0) {
     message.reply(
-      `${displayName} scored ${points} point(s) for the leaderboard!`
+      `${displayName} scored 0 points for the leaderboard! Better luck next time!`
+    );
+    return;
+  } else if (holeInOne) {
+    message.reply(
+      `🎉 ${displayName} scored a hole-in-one with 6 points in 1 guess! 🎉`
+    );
+    return;
+  } else if (points !== 1) {
+    message.reply(
+      `${displayName} scored ${points} point(s) for the leaderboard! Guessed it in ${guesses}`
     );
   } else {
     message.reply(`${displayName} scored ${points} point for the leaderboard!`);
   }
+
+  // Here you would typically update a database or a persistent storage
+  // callLeaderboardUpdate(userId, displayName, points);
 }
 
 module.exports = { handleGuessTheGameMessage };
