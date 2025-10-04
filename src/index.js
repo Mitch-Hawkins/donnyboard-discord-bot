@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits } = require("discord.js");
 require("dotenv").config();
+const { parseMessage, handleGuessTheGameMessage } = require("./messageParse");
 
 const TARGET_CHANNEL_ID = "1423925443475542118";
 
@@ -25,6 +26,9 @@ client.on("messageCreate", (message) => {
   if (message.content.toLowerCase().includes("ping")) {
     message.reply("pong");
   }
+
+  // GuessTheGame Message Parser
+  handleGuessTheGameMessage(message);
 });
 
 client.login(process.env.DISCORD_TOKEN);
