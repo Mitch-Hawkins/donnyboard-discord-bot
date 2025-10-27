@@ -1,2 +1,10 @@
 # donnyboard-discord-bot
-A Discord Bot for a guessthegame leaderboard
+
+# TO-DO
+
+- Leaderboard in a database
+- Command to refresh Leaderboard completely (Archiving?)
+- !leaderboard command
+- Make leaderboard additive
+
+- DNF per day rules
