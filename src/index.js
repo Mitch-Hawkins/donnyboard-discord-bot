@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits } = require("discord.js");
 require("dotenv").config();
+const { run } = require("./mongoDatabase");
 const { parseMessage, handleGuessTheGameMessage } = require("./messageParse");
 
 const TARGET_CHANNEL_ID = "1423925443475542118";
@@ -12,8 +13,9 @@ const client = new Client({
   ],
 });
 
-client.once("ready", () => {
+client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}!`);
+  await run();
 });
 
 // Respond to "ping" messages
