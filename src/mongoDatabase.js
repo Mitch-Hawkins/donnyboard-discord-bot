@@ -13,20 +13,40 @@ const client = new MongoClient(uri, {
 const dbName = "Donnyboard";
 const collectionName = "Guess-the-game";
 
+let isConnected = false;
+
 async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
+  if (!isConnected) {
     await client.connect();
-    // Send a ping to confirm a successful connection
+    isConnected = true;
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
   }
 }
-run().catch(console.dir);
 
-module.exports = { run };
+async function updateDatabase(document) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  const result = await collection.insertOne(document);
+  console.log(
+    `New document inserted with the following id: ${result.insertedId}`
+  );
+}
+
+async function findDatesByUserId(userId, date) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  const query = { userId: userId, createdAt: date };
+  const results = await collection.find(query).toArray();
+  return results;
+}
+
+module.exports = { run, updateDatabase, findDatesByUserId };
