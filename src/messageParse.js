@@ -31,7 +31,7 @@ async function handleGuessTheGameMessage(message) {
 
   const points = calculatePoints(emojiLine);
 
-  dailySubmissions[userId] = todayAEST;
+  // dailySubmissions[userId] = todayAEST;
 
   const guesses = 7 - points;
   const holeInOne = points === 6 && guesses === 1;

@@ -78,7 +78,7 @@ async function findUsersTotalPoints(userId) {
         totalGuesses: { $sum: "$guesses" },
         holeInOneCount: {
           $sum: {
-            $cond: [{ $eq: ["$points", 3] }, 1, 0],
+            $cond: ["$holeInOne", 1, 0],
           },
         },
       },
