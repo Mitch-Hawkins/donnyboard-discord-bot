@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits } = require("discord.js");
 require("dotenv").config();
 const { run } = require("./mongoDatabase");
 const { parseMessage, handleGuessTheGameMessage } = require("./messageParse");
+const { handleLeaderboardMessage } = require("./leaderboardParse");
 
 const TARGET_CHANNEL_ID = "1423925443475542118";
 
@@ -31,6 +32,8 @@ client.on("messageCreate", (message) => {
 
   // GuessTheGame Message Parser
   handleGuessTheGameMessage(message);
+
+  handleLeaderboardMessage(message);
 });
 
 client.login(process.env.DISCORD_TOKEN);

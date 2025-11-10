@@ -49,4 +49,49 @@ async function findDatesByUserId(userId, date) {
   return results;
 }
 
-module.exports = { run, updateDatabase, findDatesByUserId };
+async function findAllUniqueUserIds() {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  // Use aggregation to group by userId and return unique userIds
+  const results = await collection
+    .aggregate([{ $group: { _id: "$userId" } }])
+    .toArray();
+  // Return array of userIds
+  return results.map((doc) => doc._id);
+}
+
+async function findUsersTotalPoints(userId) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  const aggregationPipeline = [
+    { $match: { userId: userId } },
+    {
+      $group: {
+        _id: "$userId",
+        totalPoints: { $sum: "$points" },
+        totalGuesses: { $sum: "$guesses" },
+        holeInOneCount: {
+          $sum: {
+            $cond: [{ $eq: ["$points", 3] }, 1, 0],
+          },
+        },
+      },
+    },
+  ];
+  const results = await collection.aggregate(aggregationPipeline).toArray();
+  return results[0];
+}
+
+module.exports = {
+  run,
+  updateDatabase,
+  findDatesByUserId,
+  findAllUniqueUserIds,
+  findUsersTotalPoints,
+};
