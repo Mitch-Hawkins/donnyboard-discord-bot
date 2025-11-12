@@ -2,9 +2,7 @@
 
 # TO-DO
 
-- Leaderboard in a database
-- Command to refresh Leaderboard completely (Archiving?)
-- !leaderboard command
+- Awards Victor and resets Leaderboard completely for next month (Archiving?)
+- !champions command
 - Make leaderboard additive
-
 - DNF per day rules

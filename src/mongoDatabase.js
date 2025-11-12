@@ -1,6 +1,5 @@
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = "mongodb+srv://jacobbrennan1030_db_user:Mju2uI0JNmxeekmA@donnyboard.j8wjic7.mongodb.net/?retryWrites=true&w=majority&appName=Donnyboard";
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const uri = process.env.MONGODB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -8,19 +7,91 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
+const dbName = "Donnyboard";
+const collectionName = "Guess-the-game";
+
+let isConnected = false;
+
 async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
+  if (!isConnected) {
     await client.connect();
-    // Send a ping to confirm a successful connection
+    isConnected = true;
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   }
 }
-run().catch(console.dir);
+
+async function updateDatabase(document) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  const result = await collection.insertOne(document);
+  console.log(
+    `New document inserted with the following id: ${result.insertedId}`
+  );
+}
+
+async function findDatesByUserId(userId, date) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  const query = { userId: userId, createdAt: date };
+  const results = await collection.find(query).toArray();
+  return results;
+}
+
+async function findAllUniqueUserIds() {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  // Use aggregation to group by userId and return unique userIds
+  const results = await collection
+    .aggregate([{ $group: { _id: "$userId" } }])
+    .toArray();
+  // Return array of userIds
+  return results.map((doc) => doc._id);
+}
+
+async function findUsersTotalPoints(userId) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(collectionName);
+  const aggregationPipeline = [
+    { $match: { userId: userId } },
+    {
+      $group: {
+        _id: "$userId",
+        totalPoints: { $sum: "$points" },
+        totalGuesses: { $sum: "$guesses" },
+        holeInOneCount: {
+          $sum: {
+            $cond: ["$holeInOne", 1, 0],
+          },
+        },
+      },
+    },
+  ];
+  const results = await collection.aggregate(aggregationPipeline).toArray();
+  return results[0];
+}
+
+module.exports = {
+  run,
+  updateDatabase,
+  findDatesByUserId,
+  findAllUniqueUserIds,
+  findUsersTotalPoints,
+};

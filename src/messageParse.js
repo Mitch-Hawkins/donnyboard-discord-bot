@@ -1,29 +1,17 @@
 const { DateTime } = require("luxon");
+const { constructDocument } = require("./constructDocument.js");
+const { updateDatabase, findDatesByUserId } = require("./mongoDatabase");
 
-// Store the last submission date for each user
-// { userId: 'YYYY-MM-DD' }
-const dailySubmissions = {};
-
-function calculatePoints(emojiLine) {
-  // Split the line into individual emojis
-  const emojis = emojiLine.split(/\s+/);
-  const firstCorrectIndex = emojis.indexOf("🟩");
-  if (firstCorrectIndex === -1) {
-    return 0;
-  }
-  const attemptNumber = firstCorrectIndex;
-  const points = 7 - attemptNumber; // 6 for first, 5 for second, etc.
-  return points;
-}
-
-function handleGuessTheGameMessage(message) {
+async function handleGuessTheGameMessage(message) {
   if (!message.content.startsWith("#GuessTheGame")) return;
 
   const userId = message.author.id;
   const displayName = message.author.globalName || message.author.username;
-  const todayAEST = DateTime.now().setZone("Australia/Sydney").toISODate();
+  const todayAEST = DateTime.now()
+    .setZone("Australia/Sydney")
+    .toFormat("dd-MM-yyyy");
 
-  if (dailySubmissions[userId] === todayAEST) {
+  if (await isDuplicateGuess(userId, todayAEST)) {
     message.reply(
       `${displayName}, you've already submitted your guess for today!`
     );
@@ -43,7 +31,7 @@ function handleGuessTheGameMessage(message) {
 
   const points = calculatePoints(emojiLine);
 
-  dailySubmissions[userId] = todayAEST;
+  // dailySubmissions[userId] = todayAEST;
 
   const guesses = 7 - points;
   const holeInOne = points === 6 && guesses === 1;
@@ -53,12 +41,10 @@ function handleGuessTheGameMessage(message) {
     message.reply(
       `${displayName} scored 0 points for the leaderboard! Better luck next time!`
     );
-    return;
   } else if (holeInOne) {
     message.reply(
       `🎉 ${displayName} scored a hole-in-one with 6 points in 1 guess! 🎉`
     );
-    return;
   } else if (points !== 1) {
     message.reply(
       `${displayName} scored ${points} point(s) for the leaderboard! Guessed it in ${guesses}`
@@ -67,8 +53,43 @@ function handleGuessTheGameMessage(message) {
     message.reply(`${displayName} scored ${points} point for the leaderboard!`);
   }
 
-  // Here you would typically update a database or a persistent storage
-  // callLeaderboardUpdate(userId, displayName, points);
+  const userData = {
+    userId,
+    displayName,
+    points,
+    guesses,
+    holeInOne,
+    todayAEST,
+  };
+
+  // Update Document
+  const document = constructDocument(userData);
+  console.log("Constructed Document:", document);
+  updateDatabase(document).catch((err) =>
+    console.error("Error updating database:", err)
+  );
+}
+
+function calculatePoints(emojiLine) {
+  // Split the line into individual emojis
+  const emojis = emojiLine.split(/\s+/);
+  const firstCorrectIndex = emojis.indexOf("🟩");
+  if (firstCorrectIndex === -1) {
+    return 0;
+  }
+  const attemptNumber = firstCorrectIndex;
+  const points = 7 - attemptNumber; // 6 for first, 5 for second, etc.
+  return points;
+}
+
+async function isDuplicateGuess(userId, date) {
+  const results = await findDatesByUserId(userId, date);
+  console.log("Duplicate Check Results:", results);
+  if (results.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 module.exports = { handleGuessTheGameMessage };
