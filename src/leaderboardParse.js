@@ -46,15 +46,25 @@ async function handleLeaderboardMessage(message) {
     });
     // Construct the leaderboard message
     let leaderboardMessage = "**Leaderboard:**\n";
-    leaderboardData.forEach((entry, index) => {
-      const user = message.guild.members.cache.get(entry.userId);
-      const displayName = user ? user.displayName : "Unknown User";
-      leaderboardMessage += `**${index + 1}. ${displayName}** - Points: ${
-        entry.totalPoints
-      }, Guesses: ${entry.totalGuesses}, Hole-in-Ones: ${
-        entry.holeInOneCount
-      }\n`;
-    });
+    // Use Promise.all to fetch missing members if not cached
+    await Promise.all(
+      leaderboardData.map(async (entry, index) => {
+        let user = message.guild.members.cache.get(entry.userId);
+        if (!user) {
+          try {
+            user = await message.guild.members.fetch(entry.userId);
+          } catch (err) {
+            user = null;
+          }
+        }
+        const displayName = user ? user.displayName : "Unknown User";
+        leaderboardMessage += `**${index + 1}. ${displayName}** - Points: ${
+          entry.totalPoints
+        }, Guesses: ${entry.totalGuesses}, Hole-in-Ones: ${
+          entry.holeInOneCount
+        }\n`;
+      })
+    );
     // Send the leaderboard message back to the channel
     message.channel.send(leaderboardMessage);
   }
