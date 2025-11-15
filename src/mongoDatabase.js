@@ -57,7 +57,7 @@ async function findAllUniqueUserIds() {
   const collection = database.collection(collectionName);
   // Use aggregation to group by userId and return unique userIds
   const results = await collection
-    .aggregate([{ $group: { userId: "$userId" } }])
+    .aggregate([{ $group: { _id: "$userId" } }])
     .toArray();
   // Return array of userIds
   return results.map((doc) => doc._id);
