@@ -14,7 +14,7 @@ const dbName = "Donnyboard";
 const collectionName = "Guess-the-game";
 
 let isConnected = false;
-
+// Connect to MongoDB
 async function run() {
   if (!isConnected) {
     await client.connect();
@@ -26,6 +26,7 @@ async function run() {
   }
 }
 
+// Update database with a new document
 async function updateDatabase(document) {
   if (!isConnected) {
     await run();
@@ -38,6 +39,7 @@ async function updateDatabase(document) {
   );
 }
 
+// Find documents by userId and date
 async function findDatesByUserId(userId, date) {
   if (!isConnected) {
     await run();
@@ -49,6 +51,7 @@ async function findDatesByUserId(userId, date) {
   return results;
 }
 
+// Find all unique userIds in the collection
 async function findAllUniqueUserIds() {
   if (!isConnected) {
     await run();
@@ -63,6 +66,7 @@ async function findAllUniqueUserIds() {
   return results.map((doc) => doc._id);
 }
 
+// Find user's total points, total guesses, and holeInOne count
 async function findUsersTotalPoints(userId) {
   if (!isConnected) {
     await run();

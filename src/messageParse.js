@@ -11,6 +11,7 @@ async function handleGuessTheGameMessage(message) {
     .setZone("Australia/Sydney")
     .toFormat("dd-MM-yyyy");
 
+  // Check for duplicate submissions
   if (await isDuplicateGuess(userId, todayAEST)) {
     message.reply(
       `${displayName}, you've already submitted your guess for today!`
@@ -30,9 +31,6 @@ async function handleGuessTheGameMessage(message) {
   if (!emojiLine) return;
 
   const points = calculatePoints(emojiLine);
-
-  // dailySubmissions[userId] = todayAEST;
-
   const guesses = 7 - points;
   const holeInOne = points === 6 && guesses === 1;
 
@@ -62,7 +60,7 @@ async function handleGuessTheGameMessage(message) {
     todayAEST,
   };
 
-  // Update Document
+  // Construct Guess Document and Update Database
   const document = constructDocument(userData);
   console.log("Constructed Document:", document);
   updateDatabase(document).catch((err) =>
@@ -70,8 +68,8 @@ async function handleGuessTheGameMessage(message) {
   );
 }
 
+// Calculate points based on the emoji line
 function calculatePoints(emojiLine) {
-  // Split the line into individual emojis
   const emojis = emojiLine.split(/\s+/);
   const firstCorrectIndex = emojis.indexOf("🟩");
   if (firstCorrectIndex === -1) {
@@ -82,6 +80,7 @@ function calculatePoints(emojiLine) {
   return points;
 }
 
+// Check for duplicate guesses
 async function isDuplicateGuess(userId, date) {
   const results = await findDatesByUserId(userId, date);
   console.log("Duplicate Check Results:", results);

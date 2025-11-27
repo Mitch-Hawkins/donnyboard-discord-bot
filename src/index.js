@@ -6,6 +6,7 @@ const { handleLeaderboardMessage } = require("./leaderboardParse");
 
 const TARGET_CHANNEL_ID = "1423925443475542118";
 
+// Set up Discord client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -14,6 +15,7 @@ const client = new Client({
   ],
 });
 
+// On bot ready
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}!`);
   await run();
@@ -26,14 +28,15 @@ client.on("messageCreate", (message) => {
 
   if (message.channel.id !== TARGET_CHANNEL_ID) return;
 
-  if (message.content.toLowerCase().includes("ping")) {
+  if (message.content.toLowerCase().includes("!ping")) {
     message.reply("pong");
   }
 
   // GuessTheGame Message Parser
   handleGuessTheGameMessage(message);
-
+  // Leaderboard Command
   handleLeaderboardMessage(message);
 });
 
+// Log in to Discord with your bot token
 client.login(process.env.DISCORD_TOKEN);
