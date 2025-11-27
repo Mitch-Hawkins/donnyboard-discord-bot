@@ -11,7 +11,8 @@ const client = new MongoClient(uri, {
 });
 
 const dbName = "Donnyboard";
-const collectionName = "Guess-the-game";
+const guessesCollection = "Guess-the-game";
+const leaderboardCollection = "Leaderboard";
 
 let isConnected = false;
 // Connect to MongoDB
@@ -27,12 +28,12 @@ async function run() {
 }
 
 // Update database with a new document
-async function updateDatabase(document) {
+async function updateDatabase(document, collection) {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
+  const collection = database.collection(collection);
   const result = await collection.insertOne(document);
   console.log(
     `New document inserted with the following id: ${result.insertedId}`
@@ -45,19 +46,19 @@ async function findDatesByUserId(userId, date) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
+  const collection = database.collection(guessesCollection);
   const query = { userId: userId, createdAt: date };
   const results = await collection.find(query).toArray();
   return results;
 }
 
-// Find all unique userIds in the collection
+// Find all unique userIds in the collection ## TODO: REPLACE WITH LEADERBOARD QUERY FOR USERS
 async function findAllUniqueUserIds() {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
+  const collection = database.collection(guessesCollection);
   // Use aggregation to group by userId and return unique userIds
   const results = await collection
     .aggregate([{ $group: { _id: "$userId" } }])
@@ -66,13 +67,13 @@ async function findAllUniqueUserIds() {
   return results.map((doc) => doc._id);
 }
 
-// Find user's total points, total guesses, and holeInOne count
+// Find user's total points, total guesses, and holeInOne count ## TODO: REPLACE WITH LEADERBOARD QUERY
 async function findUsersTotalPoints(userId) {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
+  const collection = database.collection(guessesCollection);
   const aggregationPipeline = [
     { $match: { userId: userId } },
     {
@@ -92,10 +93,22 @@ async function findUsersTotalPoints(userId) {
   return results[0];
 }
 
+async function findLeaderboardByMonth(month) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(leaderboardCollection);
+  const query = { month: month };
+  const result = await collection.findOne(query);
+  return result;
+}
+
 module.exports = {
   run,
   updateDatabase,
   findDatesByUserId,
   findAllUniqueUserIds,
   findUsersTotalPoints,
+  findLeaderboardByMonth,
 };

@@ -1,4 +1,4 @@
-function constructDocument(data) {
+function constructGuessDocument(data) {
   return {
     userId: data.userId,
     displayName: data.displayName,
@@ -9,4 +9,12 @@ function constructDocument(data) {
   };
 }
 
-module.exports = { constructDocument };
+function constructLeaderboardDocument(data) {
+  return {
+    month: data.month,
+    players: data.playersArray,
+    lastUpdated: data.lastUpdated // UTC Date/Time Stamp
+  }
+}
+
+module.exports = { constructGuessDocument, constructLeaderboardDocument };
