@@ -1,6 +1,13 @@
 const { DateTime } = require("luxon");
-const { constructGuessDocument, constructLeaderboardDocument } = require("./constructGuessDocument.js");
-const { updateDatabase, findDatesByUserId, findLeaderboardByMonth } = require("./mongoDatabase");
+const {
+  constructGuessDocument,
+  constructLeaderboardDocument,
+} = require("./constructDocument.js");
+const {
+  updateDatabase,
+  findDatesByUserId,
+  findLeaderboardByMonth,
+} = require("./mongoDatabase");
 
 async function handleGuessTheGameMessage(message) {
   if (!message.content.startsWith("#GuessTheGame")) return;
@@ -31,7 +38,7 @@ async function handleGuessTheGameMessage(message) {
   if (!emojiLine) return;
 
   const points = calculatePoints(emojiLine);
-  const guesses = calculateGuessDifference(emojiLine);
+  let guesses = calculateGuessDifference(emojiLine);
   const holeInOne = calculateHoleInOne(guesses);
 
   // Creates feedback message
@@ -65,17 +72,33 @@ async function handleGuessTheGameMessage(message) {
     console.error("Error updating database:", err)
   );
 
-  // updateLeaderboardDocument();
-
+  updateLeaderboardDocument(
+    points,
+    guesses,
+    holeInOne,
+    userId,
+    displayName
+  ).catch((err) => console.error("Error updating leaderboard document:", err));
 }
 
-async function updateLeaderboardDocument() {
+async function updateLeaderboardDocument(
+  points,
+  guesses,
+  holeInOne,
+  userId,
+  displayName
+) {
   // Query Leaderboard Collection for any existing leaderboard for this month
-  const currentMonth = DateTime.now().setZone("Australia/Sydney").toFormat("MM-yyyy");
+  const currentMonth = DateTime.now()
+    .setZone("Australia/Sydney")
+    .toFormat("MM-yyyy");
   const leaderboard = await findLeaderboardByMonth(currentMonth);
+  console.log("Current Month:", currentMonth);
+  console.log("Fetched Leaderboard:", leaderboard);
   // If a leaderboard exists, Query if the player exists in the leaderboard
   if (leaderboard) {
-    const player = leaderboard.players.find(p => p.userId === userId);
+    const player = leaderboard.players.find((p) => p.userId === userId);
+    console.log("Found Player in Leaderboard:", player);
     // If player exists, update their points, guesses, holeInOne count
     if (player) {
       player.totalPoints += points;
@@ -83,31 +106,45 @@ async function updateLeaderboardDocument() {
       if (holeInOne) {
         player.holeInOneCount += 1;
       }
-    } else { // If player does not exist, calculate the GuessDifference Debt, add them to the players array and add the debt to the players GuessDifference
+    } else {
+      // If player does not exist, calculate the GuessDifference Debt, add them to the players array and add the debt to the players GuessDifference
       // Calculate GuessDifference Debt
+      console.log("Calculating GuessDifference Debt for new player");
       const currentDay = DateTime.now().setZone("Australia/Sydney").day;
+      console.log("Current Day:", currentDay);
       const guessDifferenceDebt = (currentDay - 1) * 6;
+      console.log("GuessDifference Debt:", guessDifferenceDebt);
 
       leaderboard.players.push({
         userId,
         displayName,
         totalPoints: points,
-        totalGuesses: guessDifferenceDebt,
-        holeInOneCount: holeInOne ? 1 : 0
+        totalGuesses: guessDifferenceDebt + guesses,
+        holeInOneCount: holeInOne ? 1 : 0,
       });
     }
   } else {
     // else If no leaderboard exists for this month, create a new leaderboard document in the collection for the current month, and this players data as the first entry in the players array
+    console.log("No existing leaderboard for this month. Creating new one.");
+    const currentDay = DateTime.now().setZone("Australia/Sydney").day;
+    console.log("Current Day:", currentDay);
+    const guessDifferenceDebt = (currentDay - 1) * 6;
+    console.log(
+      "GuessDifference Debt for new leaderboard:",
+      guessDifferenceDebt
+    );
     const newLeaderboard = {
       month: currentMonth,
-      players: [{
-        userId,
-        displayName,
-        totalPoints: points,
-        totalGuesses: guesses,
-        holeInOneCount: holeInOne ? 1 : 0
-      }],
-      lastUpdated: new Date()
+      players: [
+        {
+          userId,
+          displayName,
+          totalPoints: points,
+          totalGuesses: guessDifferenceDebt + guesses,
+          holeInOneCount: holeInOne ? 1 : 0,
+        },
+      ],
+      lastUpdated: new Date(),
     };
     const leaderboardDocument = constructLeaderboardDocument(newLeaderboard);
     console.log("Constructed Leaderboard Document:", leaderboardDocument);
@@ -125,8 +162,9 @@ function calculateGuessDifference(emojiLine) {
     return 0;
   }
   const attemptNumber = firstCorrectIndex;
-  const guessDifference = 7 - attemptNumber; // 6 for first, 5 for second, etc.
-  return guessDifference;
+  return attemptNumber;
+  // const guessDifference = 7 - attemptNumber; // 6 for first, 5 for second, etc.
+  // return guessDifference;
 }
 
 // Calculate points based on presence of green square
@@ -139,8 +177,8 @@ function calculatePoints(emojiLine) {
 }
 
 // Calculate if hole-in-one
-function calculateHoleInOne(points) {
-  if (points === 6) {
+function calculateHoleInOne(guesses) {
+  if (guesses === 1) {
     return true;
   } else {
     return false;

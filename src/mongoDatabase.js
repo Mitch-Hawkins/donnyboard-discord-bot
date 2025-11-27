@@ -28,12 +28,12 @@ async function run() {
 }
 
 // Update database with a new document
-async function updateDatabase(document, collection) {
+async function updateDatabase(document, collectionName) {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collection);
+  const collection = database.collection(collectionName);
   const result = await collection.insertOne(document);
   console.log(
     `New document inserted with the following id: ${result.insertedId}`
