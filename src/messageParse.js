@@ -5,6 +5,7 @@ const {
 } = require("./constructDocument.js");
 const {
   updateDatabase,
+  appendLeaderboardDocument,
   findDatesByUserId,
   findLeaderboardByMonth,
 } = require("./mongoDatabase");
@@ -106,6 +107,13 @@ async function updateLeaderboardDocument(
       if (holeInOne) {
         player.holeInOneCount += 1;
       }
+      leaderboard.lastUpdated = new Date();
+      const updatedLeaderboard = constructLeaderboardDocument(leaderboard);
+      await appendLeaderboardDocument(updatedLeaderboard).catch((err) =>
+        console.error("Error appending to leaderboard document:", err)
+      );
+      console.log("Added new player to existing leaderboard.");
+      return;
     } else {
       // If player does not exist, calculate the GuessDifference Debt, add them to the players array and add the debt to the players GuessDifference
       // Calculate GuessDifference Debt
@@ -122,6 +130,14 @@ async function updateLeaderboardDocument(
         totalGuesses: guessDifferenceDebt + guesses,
         holeInOneCount: holeInOne ? 1 : 0,
       });
+
+      leaderboard.lastUpdated = new Date();
+      const updatedLeaderboard = constructLeaderboardDocument(leaderboard);
+      await appendLeaderboardDocument(updatedLeaderboard).catch((err) =>
+        console.error("Error appending to leaderboard document:", err)
+      );
+      console.log("Added new player to existing leaderboard.");
+      return;
     }
   } else {
     // else If no leaderboard exists for this month, create a new leaderboard document in the collection for the current month, and this players data as the first entry in the players array

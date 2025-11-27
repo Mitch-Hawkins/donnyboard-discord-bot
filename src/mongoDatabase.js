@@ -40,6 +40,22 @@ async function updateDatabase(document, collectionName) {
   );
 }
 
+async function appendLeaderboardDocument(month, newLeaderboard) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(leaderboardCollection);
+  const filter = { month: month };
+  // const updateDoc = {
+  //   $push: { players: playerData },
+  // };
+  const result = await collection.replaceOne(filter, newLeaderboard);
+  console.log(
+    `Leaderboard document updated with the following id: ${result.upsertedId}`
+  );
+}
+
 // Find documents by userId and date
 async function findDatesByUserId(userId, date) {
   if (!isConnected) {
@@ -107,6 +123,7 @@ async function findLeaderboardByMonth(month) {
 module.exports = {
   run,
   updateDatabase,
+  appendLeaderboardDocument,
   findDatesByUserId,
   findAllUniqueUserIds,
   findUsersTotalPoints,
