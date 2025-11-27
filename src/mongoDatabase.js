@@ -47,12 +47,14 @@ async function appendLeaderboardDocument(month, newLeaderboard) {
   const database = client.db(dbName);
   const collection = database.collection(leaderboardCollection);
   const filter = { month: month };
-  // const updateDoc = {
-  //   $push: { players: playerData },
-  // };
-  const result = await collection.replaceOne(filter, newLeaderboard);
+  const storedId = newLeaderboard._id;
+  delete newLeaderboard._id; // Remove _id to avoid ImmutableField error
+  const plainLeaderbaord = JSON.parse(JSON.stringify(newLeaderboard));
+  const result = await collection.replaceOne(filter, plainLeaderbaord, {
+    upsert: true,
+  });
   console.log(
-    `Leaderboard document updated with the following id: ${result.upsertedId}`
+    `Leaderboard document updated with the following id: ${storedId}`
   );
 }
 

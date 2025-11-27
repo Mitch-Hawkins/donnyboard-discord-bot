@@ -99,7 +99,7 @@ async function updateLeaderboardDocument(
   // If a leaderboard exists, Query if the player exists in the leaderboard
   if (leaderboard) {
     const player = leaderboard.players.find((p) => p.userId === userId);
-    console.log("Found Player in Leaderboard:", player);
+    console.log("Results of find player method:", player);
     // If player exists, update their points, guesses, holeInOne count
     if (player) {
       player.totalPoints += points;
@@ -107,12 +107,17 @@ async function updateLeaderboardDocument(
       if (holeInOne) {
         player.holeInOneCount += 1;
       }
+
       leaderboard.lastUpdated = new Date();
-      const updatedLeaderboard = constructLeaderboardDocument(leaderboard);
-      await appendLeaderboardDocument(updatedLeaderboard).catch((err) =>
+      // const updatedLeaderboard = constructLeaderboardDocument(leaderboard);
+      console.log(
+        "New Leaderboard Before Writing:",
+        JSON.stringify(leaderboard, null, 2)
+      );
+      await appendLeaderboardDocument(currentMonth, leaderboard).catch((err) =>
         console.error("Error appending to leaderboard document:", err)
       );
-      console.log("Added new player to existing leaderboard.");
+      console.log("Appended existing players points to existing leaderboard.");
       return;
     } else {
       // If player does not exist, calculate the GuessDifference Debt, add them to the players array and add the debt to the players GuessDifference
@@ -132,8 +137,9 @@ async function updateLeaderboardDocument(
       });
 
       leaderboard.lastUpdated = new Date();
-      const updatedLeaderboard = constructLeaderboardDocument(leaderboard);
-      await appendLeaderboardDocument(updatedLeaderboard).catch((err) =>
+      // const updatedLeaderboard = constructLeaderboardDocument(leaderboard);
+
+      await appendLeaderboardDocument(currentMonth, leaderboard).catch((err) =>
         console.error("Error appending to leaderboard document:", err)
       );
       console.log("Added new player to existing leaderboard.");
