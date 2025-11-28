@@ -54,13 +54,12 @@ client.on("messageCreate", async (message) => {
 });
 
 const scheduleNextDay = () => {
-  const now = new Date();
-  const nextDay = new Date(now);
-  nextDay.setHours(24, 0, 0, 0); // Set to midnight of next day
-  const msUntilNextDay = nextDay - now;
+  // Calculate next midnight in Australia/Sydney timezone using Luxon
+  const now = DateTime.now().setZone("Australia/Sydney");
+  const nextMidnight = now.plus({ days: 1 }).startOf("day");
+  const msUntilNextDay = nextMidnight.diff(now).as("milliseconds");
 
   setTimeout(async () => {
-    // Place your action here
     console.log("A new day has started! Handling no-shows...");
     const todayAEST = DateTime.now()
       .setZone("Australia/Sydney")
