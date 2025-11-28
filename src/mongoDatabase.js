@@ -70,6 +70,17 @@ async function findDatesByUserId(userId, date) {
   return results;
 }
 
+async function findGuessesByDate(date) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(guessesCollection);
+  const query = { createdAt: date };
+  const results = await collection.find(query).toArray();
+  return results;
+}
+
 // Find all unique userIds in the collection ## TODO: REPLACE WITH LEADERBOARD QUERY FOR USERS
 async function findAllUniqueUserIds() {
   if (!isConnected) {
@@ -130,4 +141,5 @@ module.exports = {
   findAllUniqueUserIds,
   findUsersTotalPoints,
   findLeaderboardByMonth,
+  findGuessesByDate,
 };

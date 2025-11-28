@@ -1,8 +1,10 @@
 const { Client, GatewayIntentBits } = require("discord.js");
+const { DateTime } = require("luxon");
 require("dotenv").config();
 const { run } = require("./mongoDatabase");
 const { parseMessage, handleGuessTheGameMessage } = require("./messageParse");
 const { handleLeaderboardMessage } = require("./leaderboardParse");
+const { handleNoShows } = require("./handleNoShows");
 
 const TARGET_CHANNEL_ID = "1423925443475542118";
 
@@ -19,10 +21,11 @@ const client = new Client({
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}!`);
   await run();
+  scheduleNextDay();
 });
 
 // Respond to "ping" messages
-client.on("messageCreate", (message) => {
+client.on("messageCreate", async (message) => {
   // Ignore messages from bots (including itself)
   if (message.author.bot) return;
 
@@ -32,11 +35,44 @@ client.on("messageCreate", (message) => {
     message.reply("pong");
   }
 
+  if (message.content.startsWith("!noshow")) {
+    console.log("Manually Handling no-shows for today...");
+    const todayAEST = DateTime.now()
+      .setZone("Australia/Sydney")
+      .toFormat("dd-MM-yyyy");
+    const targetChannel = await client.channels.fetch(TARGET_CHANNEL_ID);
+    handleNoShows(todayAEST, targetChannel).catch((err) => {
+      console.error("Error handling no-shows:", err);
+    });
+    return;
+  }
+
   // GuessTheGame Message Parser
   handleGuessTheGameMessage(message);
   // Leaderboard Command
   handleLeaderboardMessage(message);
 });
+
+const scheduleNextDay = () => {
+  const now = new Date();
+  const nextDay = new Date(now);
+  nextDay.setHours(24, 0, 0, 0); // Set to midnight of next day
+  const msUntilNextDay = nextDay - now;
+
+  setTimeout(async () => {
+    // Place your action here
+    console.log("A new day has started! Handling no-shows...");
+    const todayAEST = DateTime.now()
+      .setZone("Australia/Sydney")
+      .toFormat("dd-MM-yyyy");
+    const targetChannel = await client.channels.fetch(TARGET_CHANNEL_ID);
+    handleNoShows(todayAEST, targetChannel).catch((err) =>
+      console.error("Error handling no-shows:", err)
+    );
+    // Schedule again for the following day
+    scheduleNextDay();
+  }, msUntilNextDay);
+};
 
 // Log in to Discord with your bot token
 client.login(process.env.DISCORD_TOKEN);
