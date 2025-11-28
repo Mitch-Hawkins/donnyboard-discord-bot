@@ -1,73 +1,64 @@
-/*
-
-Takes in the message !leaderboard
-
-Runs a database query to find all unique usersIDs and return their respective userID and display name.
-
-For each userID, sum up their total points, total guesses, and holeInOne count.
-
-Sort the users by total points (descending), then by total guesses (ascending), then by holeInOne count (descending).
-
-Construct a leaderboard message displaying the rankings, user display names, total points, total guesses, and holeInOne counts.
-
-Sends the constructed leaderboard message back to the Discord channel
-
-*/
-
-const {
-  findAllUniqueUserIds,
-  findUsersTotalPoints,
-} = require("./mongoDatabase");
+const { DateTime } = require("luxon");
+const { findLeaderboardByMonth } = require("./mongoDatabase");
 
 async function handleLeaderboardMessage(message) {
   if (message.content.toLowerCase().startsWith("!leaderboard")) {
-    const userIds = await findAllUniqueUserIds();
-    const leaderboardData = [];
-    for (const userId of userIds) {
-      const userStats = await findUsersTotalPoints(userId);
-      if (userStats) {
-        leaderboardData.push({
-          userId: userId,
-          totalPoints: userStats.totalPoints,
-          totalGuesses: userStats.totalGuesses,
-          holeInOneCount: userStats.holeInOneCount,
-        });
-      }
+    console.log("Handling leaderboard command...");
+
+    const currentMonth = DateTime.now()
+      .setZone("Australia/Sydney")
+      .toFormat("MM-yyyy");
+    const leaderboard = await findLeaderboardByMonth(currentMonth);
+    if (!leaderboard) {
+      message.reply(
+        "No leaderboard data available for this month yet. Play some games to get started!"
+      );
+      return;
     }
-    // Sorts the leaderboard data
-    leaderboardData.sort((a, b) => {
+
+    const players = leaderboard.players;
+
+    // Sort players by totalPoints (desc), totalGuesses (asc), holeInOneCount (desc)
+    players.sort((a, b) => {
       if (b.totalPoints !== a.totalPoints) {
-        return b.totalPoints - a.totalPoints;
+        return b.totalPoints - a.totalPoints; // Descending points
       }
       if (a.totalGuesses !== b.totalGuesses) {
-        return a.totalGuesses - b.totalGuesses;
+        return a.totalGuesses - b.totalGuesses; // Ascending guesses
       }
-      return b.holeInOneCount - a.holeInOneCount;
+      return b.holeInOneCount - a.holeInOneCount; // Descending hole-in-ones
     });
-    // Construct the leaderboard message
-    let leaderboardMessage = "**Leaderboard:**\n";
-    // Use Promise.all to fetch missing members if not cached
-    await Promise.all(
-      leaderboardData.map(async (entry, index) => {
-        let user = message.guild.members.cache.get(entry.userId);
-        if (!user) {
-          try {
-            user = await message.guild.members.fetch(entry.userId);
-          } catch (err) {
-            user = null;
-          }
-        }
-        const displayName = user ? user.displayName : "Unknown User";
-        leaderboardMessage += `**${index + 1}. ${displayName}** - Points: ${
-          entry.totalPoints
-        }, Guesses: ${entry.totalGuesses}, Hole-in-Ones: ${
-          entry.holeInOneCount
-        }\n`;
-      })
-    );
-    // Send the leaderboard message back to the channel
-    message.channel.send(leaderboardMessage);
+
+    let msg = `🏆 **Leaderboard for ${currentMonth}** 🏆\n\n`;
+    msg += "```\n";
+    msg += padRow("#", "Player", "P", "GD", "HIO") + "\n";
+    msg += "-".repeat(34) + "\n";
+
+    players.forEach((p, i) => {
+      msg +=
+        padRow(
+          i + 1,
+          p.displayName || "Unknown",
+          p.totalPoints,
+          p.totalGuesses,
+          p.holeInOneCount
+        ) + "\n";
+    });
+
+    msg += "```";
+
+    message.reply(msg);
   }
+}
+
+function padRow(rank, name, pts, guess, hio) {
+  return (
+    rank.toString().padEnd(2) +
+    name.padEnd(14) +
+    `| ${pts}`.padEnd(4) +
+    `| ${guess}`.padEnd(6) +
+    `| ${hio}`
+  );
 }
 
 module.exports = { handleLeaderboardMessage };
