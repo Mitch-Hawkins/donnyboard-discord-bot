@@ -2,7 +2,7 @@ const { DateTime } = require("luxon");
 const { findLeaderboardByMonth } = require("./mongoDatabase");
 
 async function handleLeaderboardMessage(message) {
-  if (message.content.toLowerCase().startsWith("!leaderboard")) {
+  if (message.content.toLowerCase() === "!leaderboard") {
     console.log("Handling leaderboard command...");
 
     const currentMonth = DateTime.now()

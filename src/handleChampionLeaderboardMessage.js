@@ -5,7 +5,7 @@ async function handleChampionLeaderboardMessage(channel) {
   console.log("Manually Crowning a Champion...");
   const previousMonth = DateTime.now()
     .setZone("Australia/Sydney")
-    // .minus({ months: 1 })
+    .minus({ months: 1 })
     .toFormat("MM-yyyy");
   const leaderboard = await findLeaderboardByMonth(previousMonth);
   if (

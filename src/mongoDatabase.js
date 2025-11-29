@@ -1,7 +1,6 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = process.env.MONGODB_URI;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -15,7 +14,6 @@ const guessesCollection = "Guess-the-game";
 const leaderboardCollection = "Leaderboard";
 
 let isConnected = false;
-// Connect to MongoDB
 async function run() {
   if (!isConnected) {
     await client.connect();
@@ -40,6 +38,7 @@ async function updateDatabase(document, collectionName) {
   );
 }
 
+// Append leaderboard document for the month
 async function appendLeaderboardDocument(month, newLeaderboard) {
   if (!isConnected) {
     await run();
@@ -70,6 +69,7 @@ async function findDatesByUserId(userId, date) {
   return results;
 }
 
+// Find all guesses for a specific date
 async function findGuessesByDate(date) {
   if (!isConnected) {
     await run();
@@ -81,47 +81,7 @@ async function findGuessesByDate(date) {
   return results;
 }
 
-// Find all unique userIds in the collection ## TODO: REPLACE WITH LEADERBOARD QUERY FOR USERS
-async function findAllUniqueUserIds() {
-  if (!isConnected) {
-    await run();
-  }
-  const database = client.db(dbName);
-  const collection = database.collection(guessesCollection);
-  // Use aggregation to group by userId and return unique userIds
-  const results = await collection
-    .aggregate([{ $group: { _id: "$userId" } }])
-    .toArray();
-  // Return array of userIds
-  return results.map((doc) => doc._id);
-}
-
-// Find user's total points, total guesses, and holeInOne count ## TODO: REPLACE WITH LEADERBOARD QUERY
-async function findUsersTotalPoints(userId) {
-  if (!isConnected) {
-    await run();
-  }
-  const database = client.db(dbName);
-  const collection = database.collection(guessesCollection);
-  const aggregationPipeline = [
-    { $match: { userId: userId } },
-    {
-      $group: {
-        _id: "$userId",
-        totalPoints: { $sum: "$points" },
-        totalGuesses: { $sum: "$guesses" },
-        holeInOneCount: {
-          $sum: {
-            $cond: ["$holeInOne", 1, 0],
-          },
-        },
-      },
-    },
-  ];
-  const results = await collection.aggregate(aggregationPipeline).toArray();
-  return results[0];
-}
-
+// Find leaderboard for a specific month
 async function findLeaderboardByMonth(month) {
   if (!isConnected) {
     await run();
@@ -138,8 +98,6 @@ module.exports = {
   updateDatabase,
   appendLeaderboardDocument,
   findDatesByUserId,
-  findAllUniqueUserIds,
-  findUsersTotalPoints,
   findLeaderboardByMonth,
   findGuessesByDate,
 };
