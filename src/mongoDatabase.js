@@ -1,7 +1,6 @@
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = process.env.MONGODB_URI;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -11,10 +10,10 @@ const client = new MongoClient(uri, {
 });
 
 const dbName = "Donnyboard";
-const collectionName = "Guess-the-game";
+const guessesCollection = "Guess-the-game";
+const leaderboardCollection = "Leaderboard";
 
 let isConnected = false;
-
 async function run() {
   if (!isConnected) {
     await client.connect();
@@ -26,7 +25,8 @@ async function run() {
   }
 }
 
-async function updateDatabase(document) {
+// Update database with a new document
+async function updateDatabase(document, collectionName) {
   if (!isConnected) {
     await run();
   }
@@ -38,60 +38,66 @@ async function updateDatabase(document) {
   );
 }
 
+// Append leaderboard document for the month
+async function appendLeaderboardDocument(month, newLeaderboard) {
+  if (!isConnected) {
+    await run();
+  }
+  const database = client.db(dbName);
+  const collection = database.collection(leaderboardCollection);
+  const filter = { month: month };
+  const storedId = newLeaderboard._id;
+  delete newLeaderboard._id; // Remove _id to avoid ImmutableField error
+  const plainLeaderbaord = JSON.parse(JSON.stringify(newLeaderboard));
+  const result = await collection.replaceOne(filter, plainLeaderbaord, {
+    upsert: true,
+  });
+  console.log(
+    `Leaderboard document updated with the following id: ${storedId}`
+  );
+}
+
+// Find documents by userId and date
 async function findDatesByUserId(userId, date) {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
+  const collection = database.collection(guessesCollection);
   const query = { userId: userId, createdAt: date };
   const results = await collection.find(query).toArray();
   return results;
 }
 
-async function findAllUniqueUserIds() {
+// Find all guesses for a specific date
+async function findGuessesByDate(date) {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
-  // Use aggregation to group by userId and return unique userIds
-  const results = await collection
-    .aggregate([{ $group: { _id: "$userId" } }])
-    .toArray();
-  // Return array of userIds
-  return results.map((doc) => doc._id);
+  const collection = database.collection(guessesCollection);
+  const query = { createdAt: date };
+  const results = await collection.find(query).toArray();
+  return results;
 }
 
-async function findUsersTotalPoints(userId) {
+// Find leaderboard for a specific month
+async function findLeaderboardByMonth(month) {
   if (!isConnected) {
     await run();
   }
   const database = client.db(dbName);
-  const collection = database.collection(collectionName);
-  const aggregationPipeline = [
-    { $match: { userId: userId } },
-    {
-      $group: {
-        _id: "$userId",
-        totalPoints: { $sum: "$points" },
-        totalGuesses: { $sum: "$guesses" },
-        holeInOneCount: {
-          $sum: {
-            $cond: ["$holeInOne", 1, 0],
-          },
-        },
-      },
-    },
-  ];
-  const results = await collection.aggregate(aggregationPipeline).toArray();
-  return results[0];
+  const collection = database.collection(leaderboardCollection);
+  const query = { month: month };
+  const result = await collection.findOne(query);
+  return result;
 }
 
 module.exports = {
   run,
   updateDatabase,
+  appendLeaderboardDocument,
   findDatesByUserId,
-  findAllUniqueUserIds,
-  findUsersTotalPoints,
+  findLeaderboardByMonth,
+  findGuessesByDate,
 };
